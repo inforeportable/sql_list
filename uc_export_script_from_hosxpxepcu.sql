@@ -1,4 +1,4 @@
--- uc_export_script_from_hosxpxepcu 2024-07-31
+-- uc_export_script_from_hosxpxepcu 2024-08-05
 -- เพื่อประมวลผลข้อมูลการให้บริการเพื่อนำมาใช้ในการติดตามเบื้องต้น
 
 
@@ -41,9 +41,20 @@ cast(max(case when ovstdiag.diagtype = 1 then ovstdiag.icd10 else null end)  as 
 cast(count(distinct ovstdiag.icd10) as char)   as  count_diag_use,
 cast(group_concat(distinct ovstdiag.icd10 order by ovstdiag.diagtype,ovstdiag.icd10) as char)   as  list_diag_code,
 cast(group_concat(distinct ovstdiag.doctor order by ovstdiag.diagtype,ovstdiag.icd10) as char)   as list_diagnosis_provider ,
-cast(count(distinct doctor_operation.icd9 ) as char)   as count_procedure_use,
-cast(group_concat(distinct doctor_operation.icd9 ) as char)   as list_procedure_code,
-cast(group_concat(distinct doctor_operation.doctor) as char)  as list_procedure_provider,
+
+-- cast(count(distinct doctor_operation.icd9 ) as char)   as count_procedure_use,
+-- cast(group_concat(distinct doctor_operation.icd9 ) as char)   as list_procedure_code,
+-- cast(group_concat(distinct doctor_operation.doctor) as char)  as list_procedure_provider,
+
+cast(cvt.count_procedure as char) as count_procedure_use,
+cast(cvt.list_procedure_code as char) as list_procedure_code,
+cast(cvt.list_procedure_doctor as char) as list_procedure_provider,
+
+
+
+
+
+
 cast(count(distinct drugitems.icode) as char)   as count_drug_use,
 -- v1 
 cast(lower(group_concat(distinct concat(drugitems.name,'|qty=',opitemrece.qty,'|sum_price=',opitemrece.sum_price) )) as char)   as list_drug_name,
@@ -88,11 +99,52 @@ left outer join ovstdiag on ovst.vn = ovstdiag.vn
 left outer join doctor on ovstdiag.doctor = doctor.code
 left outer join provider_type on doctor.provider_type_code = provider_type.provider_type_code
 left outer join doctor_operation on ovst.vn = doctor_operation.vn
+
+LEFT OUTER JOIN dtmain on ovst.vn = dtmain.vn
+
+
 left outer join er_oper_code on doctor_operation.er_oper_code = er_oper_code.er_oper_code
 left outer join doctor as dc_pr on doctor_operation.doctor = dc_pr.code
 left outer join opitemrece on ovst.vn = opitemrece.vn
 left outer join drugitems on opitemrece.icode = drugitems.icode 
 left outer join opduser on opitemrece.staff = opduser.loginname
+
+LEFT OUTER JOIN
+-- subquery call procedure list
+(
+SELECT 
+vt.vn, 
+count(DISTINCT vt.icd9) as count_procedure,
+GROUP_CONCAT(distinct vt.icd9) as list_procedure_code ,
+GROUP_CONCAT(distinct vt.doctor) as list_procedure_doctor
+FROM
+(
+SELECT
+dtmain.vn,
+dtmain.icd9,
+dtmain.doctor
+FROM dtmain
+WHERE
+date(
+concat(
+concat('25',LEFT(dtmain.vn,2))-543,'-',mid(dtmain.vn,3,2),'-',mid(dtmain.vn,5,2)
+))  BETWEEN @s_date AND @e_date
+UNION
+SELECT
+doctor_operation.vn,
+doctor_operation.icd9,
+doctor_operation.doctor
+FROM doctor_operation
+WHERE
+date(
+concat(
+concat('25',LEFT(doctor_operation.vn,2))-543,'-',mid(doctor_operation.vn,3,2),'-',mid(doctor_operation.vn,5,2)
+))  BETWEEN @s_date AND @e_date
+) vt 
+GROUP BY vt.vn
+HAVING GROUP_CONCAT(distinct vt.icd9) IS NOT NULL
+) cvt ON ovst.vn = cvt.vn
+
 
 where
 	ovst.vstdate between @s_date
@@ -103,9 +155,14 @@ and @e_date
 -- or
 -- (person.nationality <> '99')
 -- )
-
 group by
 ovst.vn
+
+-- Update 2024-08-05
+-- * subquery ตารางหัตถการ เพื่อให้ รหัสหัตถการออกมากทั้งหมด ทั้งหัตถการทั่วไป และ ทันตกรรม (subquery call procedure list)
+-- * ปรับ count_procedure_use : ตาราง subquery cvt.count_procedure
+-- * ปรับ list_procedure_code : ตาราง subquery cvt.list_procedure_code
+-- * ปรับ list_procedure_provider : ตาราง subquery cvt.list_procedure_doctor
 
 -- Update 2024-07-31
 -- * ปรับ hdc_date : ใช้ VN แทน เพราะไม่สามาถนำข้อมูลจาก HDC มาใช้ได้
