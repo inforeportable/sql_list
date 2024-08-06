@@ -1,8 +1,7 @@
--- uc_export_script_from_hosxpxepcu 2024-08-05
+-- uc_export_script_from_hosxpxepcu 2024-08-06
 -- เพื่อประมวลผลข้อมูลการให้บริการเพื่อนำมาใช้ในการติดตามเบื้องต้น
 
-
-set @s_date = '2023-10-01' ;
+set @s_date = '2022-10-01' ;
 set @e_date = '2024-07-31' ;
 set @hospital_code = (select  opdconfig.hospitalcode from opdconfig);
 select
@@ -49,11 +48,6 @@ cast(group_concat(distinct ovstdiag.doctor order by ovstdiag.diagtype,ovstdiag.i
 cast(cvt.count_procedure as char) as count_procedure_use,
 cast(cvt.list_procedure_code as char) as list_procedure_code,
 cast(cvt.list_procedure_doctor as char) as list_procedure_provider,
-
-
-
-
-
 
 cast(count(distinct drugitems.icode) as char)   as count_drug_use,
 -- v1 
@@ -102,7 +96,6 @@ left outer join doctor_operation on ovst.vn = doctor_operation.vn
 
 LEFT OUTER JOIN dtmain on ovst.vn = dtmain.vn
 
-
 left outer join er_oper_code on doctor_operation.er_oper_code = er_oper_code.er_oper_code
 left outer join doctor as dc_pr on doctor_operation.doctor = dc_pr.code
 left outer join opitemrece on ovst.vn = opitemrece.vn
@@ -132,9 +125,11 @@ concat('25',LEFT(dtmain.vn,2))-543,'-',mid(dtmain.vn,3,2),'-',mid(dtmain.vn,5,2)
 UNION
 SELECT
 doctor_operation.vn,
-doctor_operation.icd9,
+IFNULL(doctor_operation.icd9,IFNULL(er_oper_code_area.icd10tm_operation_code,IFNULL(er_oper_code.icd9cm,er_oper_code.icd10tm))) as icd9,
 doctor_operation.doctor
 FROM doctor_operation
+LEFT OUTER JOIN er_oper_code_area ON doctor_operation.er_oper_code_area_id = er_oper_code_area.er_oper_code_area_id
+LEFT OUTER JOIN er_oper_code ON doctor_operation.er_oper_code = er_oper_code.er_oper_code
 WHERE
 date(
 concat(
@@ -144,7 +139,6 @@ concat('25',LEFT(doctor_operation.vn,2))-543,'-',mid(doctor_operation.vn,3,2),'-
 GROUP BY vt.vn
 HAVING GROUP_CONCAT(distinct vt.icd9) IS NOT NULL
 ) cvt ON ovst.vn = cvt.vn
-
 
 where
 	ovst.vstdate between @s_date
@@ -157,6 +151,11 @@ and @e_date
 -- )
 group by
 ovst.vn
+
+-- Update 2024-08-06
+-- * subquery ตารางหัตถการ เพื่อให้ รหัสหัตถการออกมากทั้งหมด ทั้งหัตถการทั่วไป และ ทันตกรรม (subquery call procedure list)
+-- * ปรับ icd9 : ดึงมาจากหลาย Column ตามลำดับหากไม่เจอให้ดูที่ Column ถัดไปจนกว่าจะไม่มี 
+-- * ลำดับ doctor_operation.icd9,er_oper_code_area.icd10tm_operation_code,er_oper_code.icd9cm,er_oper_code.icd10tm
 
 -- Update 2024-08-05
 -- * subquery ตารางหัตถการ เพื่อให้ รหัสหัตถการออกมากทั้งหมด ทั้งหัตถการทั่วไป และ ทันตกรรม (subquery call procedure list)
