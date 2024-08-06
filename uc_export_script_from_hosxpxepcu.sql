@@ -1,7 +1,7 @@
 -- uc_export_script_from_hosxpxepcu 2024-08-06
 -- เพื่อประมวลผลข้อมูลการให้บริการเพื่อนำมาใช้ในการติดตามเบื้องต้น
 
-set @s_date = '2022-10-01' ;
+set @s_date = '2023-10-01' ;
 set @e_date = '2024-07-31' ;
 set @hospital_code = (select  opdconfig.hospitalcode from opdconfig);
 select
