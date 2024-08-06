@@ -1,9 +1,11 @@
 -- uc_export_script_from_hosxpxepcu 2024-08-06
+-- update [2024-08-06 14:23:22]
 -- เพื่อประมวลผลข้อมูลการให้บริการเพื่อนำมาใช้ในการติดตามเบื้องต้น
 
 set @s_date = '2023-10-01' ;
 set @e_date = '2024-07-31' ;
 set @hospital_code = (select  opdconfig.hospitalcode from opdconfig);
+
 select
 ovst.vn as hdc_date,
 cast(now()  as char)  as export_stamp ,
@@ -114,9 +116,10 @@ FROM
 (
 SELECT
 dtmain.vn,
-dtmain.icd9,
+IFNULL(dttm.icd10tm_operation_code,dttm.icd9cm) AS icd9,
 dtmain.doctor
 FROM dtmain
+LEFT OUTER JOIN dttm ON dtmain.tmcode = dttm.`code`
 WHERE
 date(
 concat(
@@ -125,7 +128,11 @@ concat('25',LEFT(dtmain.vn,2))-543,'-',mid(dtmain.vn,3,2),'-',mid(dtmain.vn,5,2)
 UNION
 SELECT
 doctor_operation.vn,
-IFNULL(doctor_operation.icd9,IFNULL(er_oper_code_area.icd10tm_operation_code,IFNULL(er_oper_code.icd9cm,er_oper_code.icd10tm))) as icd9,
+
+-- IFNULL(doctor_operation.icd9,IFNULL(er_oper_code_area.icd10tm_operation_code,IFNULL(er_oper_code.icd9cm,er_oper_code.icd10tm))) as icd9,
+
+IFNULL(er_oper_code_area.icd10tm_operation_code,IFNULL(doctor_operation.icd9,IFNULL(er_oper_code.icd10tm,er_oper_code.icd9cm))) as icd9,
+
 doctor_operation.doctor
 FROM doctor_operation
 LEFT OUTER JOIN er_oper_code_area ON doctor_operation.er_oper_code_area_id = er_oper_code_area.er_oper_code_area_id
@@ -154,8 +161,9 @@ ovst.vn
 
 -- Update 2024-08-06
 -- * subquery ตารางหัตถการ เพื่อให้ รหัสหัตถการออกมากทั้งหมด ทั้งหัตถการทั่วไป และ ทันตกรรม (subquery call procedure list)
--- * ปรับ icd9 : ดึงมาจากหลาย Column ตามลำดับหากไม่เจอให้ดูที่ Column ถัดไปจนกว่าจะไม่มี 
--- * ลำดับ doctor_operation.icd9,er_oper_code_area.icd10tm_operation_code,er_oper_code.icd9cm,er_oper_code.icd10tm
+-- * ปรับ icd9 หัตถการทั่วไป : ดึงมาจากหลาย Column ตามลำดับหากไม่เจอให้ดูที่ Column ถัดไปจนกว่าจะไม่มี เน้น ICD10TM
+-- * ปรับ ลำดับ er_oper_code_area.icd10tm_operation_code, doctor_operation.icd9,er_oper_code.icd10tm,er_oper_code.icd9cm
+-- * ปรับ icd9 ทันตกรรม : เรียงลำดับ dttm.icd10tm_operation_code,dttm.icd9cm เน้น ICD10TM
 
 -- Update 2024-08-05
 -- * subquery ตารางหัตถการ เพื่อให้ รหัสหัตถการออกมากทั้งหมด ทั้งหัตถการทั่วไป และ ทันตกรรม (subquery call procedure list)
