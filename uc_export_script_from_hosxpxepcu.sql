@@ -1,11 +1,11 @@
--- uc_export_script_from_hosxpxepcu 2024-08-06
--- update [2024-08-06 14:23:22]
+-- uc_export_script_from_hosxpxepcu 2024-08-07
+-- update [2024-08-07 09:06:07]
 -- เพื่อประมวลผลข้อมูลการให้บริการเพื่อนำมาใช้ในการติดตามเบื้องต้น
+
 
 set @s_date = '2023-10-01' ;
 set @e_date = '2024-07-31' ;
 set @hospital_code = (select  opdconfig.hospitalcode from opdconfig);
-
 select
 ovst.vn as hdc_date,
 cast(now()  as char)  as export_stamp ,
@@ -128,15 +128,22 @@ concat('25',LEFT(dtmain.vn,2))-543,'-',mid(dtmain.vn,3,2),'-',mid(dtmain.vn,5,2)
 UNION
 SELECT
 doctor_operation.vn,
-
--- IFNULL(doctor_operation.icd9,IFNULL(er_oper_code_area.icd10tm_operation_code,IFNULL(er_oper_code.icd9cm,er_oper_code.icd10tm))) as icd9,
-
-IFNULL(er_oper_code_area.icd10tm_operation_code,IFNULL(doctor_operation.icd9,IFNULL(er_oper_code.icd10tm,er_oper_code.icd9cm))) as icd9,
-
+IFNULL(
+IFNULl(
+IF(er_oper_code.icd9cm ='',NULL,er_oper_code.icd9cm),
+IF(doctor_operation.icd9 ='',NULL,doctor_operation.icd9)
+)
+,
+IFNULL(
+IF(er_oper_code.icd10tm ='',NULL,er_oper_code.icd10tm),
+IF(er_oper_code_area.icd10tm_operation_code ='',NULL,er_oper_code_area.icd10tm_operation_code)
+)
+) AS icd9,
 doctor_operation.doctor
-FROM doctor_operation
-LEFT OUTER JOIN er_oper_code_area ON doctor_operation.er_oper_code_area_id = er_oper_code_area.er_oper_code_area_id
+FROM
+doctor_operation
 LEFT OUTER JOIN er_oper_code ON doctor_operation.er_oper_code = er_oper_code.er_oper_code
+LEFT OUTER JOIN er_oper_code_area ON doctor_operation.er_oper_code_area_id = er_oper_code_area.er_oper_code_area_id
 WHERE
 date(
 concat(
@@ -159,19 +166,23 @@ and @e_date
 group by
 ovst.vn
 
--- Update 2024-08-06
+-- Update [2024-08-07 09:06:07]
+-- * ปรับ จัดลำดับตาม IFNULL ดังนี้ ICD-9-CM รองลงมาเป็น ICD-10-TM
+-- * มาตรฐาน 43 แฟ้ม เวอร์ชั่น 2.4 รหัสหัตถการ ตารางราง PROCEDURE_OPD : Description : รหัสมาตรฐาน ICD-9-CM หรือ ICD-10-TM (รหัสหัตถการ) 
+
+-- Update [2024-08-06 xx:xx:xx]
 -- * subquery ตารางหัตถการ เพื่อให้ รหัสหัตถการออกมากทั้งหมด ทั้งหัตถการทั่วไป และ ทันตกรรม (subquery call procedure list)
 -- * ปรับ icd9 หัตถการทั่วไป : ดึงมาจากหลาย Column ตามลำดับหากไม่เจอให้ดูที่ Column ถัดไปจนกว่าจะไม่มี เน้น ICD10TM
 -- * ปรับ ลำดับ er_oper_code_area.icd10tm_operation_code, doctor_operation.icd9,er_oper_code.icd10tm,er_oper_code.icd9cm
 -- * ปรับ icd9 ทันตกรรม : เรียงลำดับ dttm.icd10tm_operation_code,dttm.icd9cm เน้น ICD10TM
 
--- Update 2024-08-05
+-- Update [2024-08-05 xx:xx:xx]
 -- * subquery ตารางหัตถการ เพื่อให้ รหัสหัตถการออกมากทั้งหมด ทั้งหัตถการทั่วไป และ ทันตกรรม (subquery call procedure list)
 -- * ปรับ count_procedure_use : ตาราง subquery cvt.count_procedure
 -- * ปรับ list_procedure_code : ตาราง subquery cvt.list_procedure_code
 -- * ปรับ list_procedure_provider : ตาราง subquery cvt.list_procedure_doctor
 
--- Update 2024-07-31
+-- Update [2024-07-31 xx:xx:xx]
 -- * ปรับ hdc_date : ใช้ VN แทน เพราะไม่สามาถนำข้อมูลจาก HDC มาใช้ได้
 -- * ปรับ chiefcomp : Line Break,New line ในข้อความโดยใช้ '\r\n',char(10),char(13)
 -- * ปรับ count_drug_use : เพิ่ม ราคาขาย '|sum_price='
