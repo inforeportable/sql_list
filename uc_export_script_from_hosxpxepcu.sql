@@ -1,188 +1,224 @@
--- uc_export_script_from_hosxpxepcu 2024-08-07
--- update [2024-08-07 09:06:07]
+-- uc_export_script_from_hosxpxepcu 2024-08-13 08:44:30
+-- update [2024-08-13 08:44:30]
 -- เพื่อประมวลผลข้อมูลการให้บริการเพื่อนำมาใช้ในการติดตามเบื้องต้น
-
 
 set @s_date = '2023-10-01' ;
 set @e_date = '2024-07-31' ;
-set @hospital_code = (select  opdconfig.hospitalcode from opdconfig);
+set @hospital_code = (select opdconfig.hospitalcode from opdconfig);
+
 select
-ovst.vn as hdc_date,
-cast(now()  as char)  as export_stamp ,
-cast(@s_date as char) as start_date ,
-cast(@e_date as char) as stop_date ,
-cast(@hospital_code  as char) as hospcode,
-cast(lpad(person.person_id,9,0)  as char)  as pid,
-cast(if(trim(ovst.hn) = trim(person.cid),'xxx',trim(ovst.hn))  as char)  as hn,
-cast(ovst_seq.seq_id  as char)  as seq,
-cast(ovst.vstdate  as char)  as date_serv,
-cast(provis_instype.pttype_std_code  as char)  as instype,
-
--- cast( if(trim(replace(ovst.pttypeno,'-','')) = trim(person.cid),'censor',trim(replace(ovst.pttypeno,'-','')))  as char)  as insid,
-if(
-trim(replace(replace(ovst.pttypeno,'-', ''),' ','')) = trim(person.cid)
-,'xxx',
-trim(replace(replace(ovst.pttypeno,'-', ''),' ',''))
-) 
-as insid,
-
-cast(ovst.hospmain  as char)  as main,
-cast(left(trim(  replace(replace(replace(opdscreen.cc,'\r\n',' '),char(10),' '),char(13),' ')  ),255) as char)  as chiefcomp,
-cast(truncate(sum(opitemrece.qty * opitemrece.cost),2)  as char)   as cost,
-cast(truncate(sum(opitemrece.sum_price),2) as char)   as price,
-cast(truncate('0.0',2)  as char)   as payprice,
-cast(truncate('0.0',2)  as char)   as actualpay,
-
--- virtual column Change actualpay To pttype_local_type_name(pttype.`name`)
--- cast(pttype.`name` as char)  as actualpay,
-
-cast(ovst.hospsub as char) as hsub,
-cast('xxx'  as char)  as cid,
-cast(max(case when ovstdiag.diagtype = 1 then ovstdiag.icd10 else null end)  as char)   as pdx,
-cast(count(distinct ovstdiag.icd10) as char)   as  count_diag_use,
-cast(group_concat(distinct ovstdiag.icd10 order by ovstdiag.diagtype,ovstdiag.icd10) as char)   as  list_diag_code,
-cast(group_concat(distinct ovstdiag.doctor order by ovstdiag.diagtype,ovstdiag.icd10) as char)   as list_diagnosis_provider ,
-
--- cast(count(distinct doctor_operation.icd9 ) as char)   as count_procedure_use,
--- cast(group_concat(distinct doctor_operation.icd9 ) as char)   as list_procedure_code,
--- cast(group_concat(distinct doctor_operation.doctor) as char)  as list_procedure_provider,
-
-cast(cvt.count_procedure as char) as count_procedure_use,
-cast(cvt.list_procedure_code as char) as list_procedure_code,
-cast(cvt.list_procedure_doctor as char) as list_procedure_provider,
-
-cast(count(distinct drugitems.icode) as char)   as count_drug_use,
--- v1 
-cast(lower(group_concat(distinct concat(drugitems.name,'|qty=',opitemrece.qty,'|sum_price=',opitemrece.sum_price) )) as char)   as list_drug_name,
-
--- v2 json hosxp error but standart
--- lower(concat('[',group_concat(distinct concat('{"dname":"', drugitems.name, '", "dqty":"',opitemrece.qty, '", "did":"',drugitems.did,'"}') ),']')) as list_drug_name,
-
--- v3 json hosxp result no standart show singe quote
--- lower(concat('[',group_concat(distinct concat("{''''dname'''':''''", drugitems.name, "'''', ''''dqty'''':''''",opitemrece.qty, "'''', ''''did'''':''''",drugitems.did,"''''}''''") ),']')) as list_drug_name,
-
--- v4 json hosxp ok by char(34)
--- replace(
--- lower(concat('[',group_concat(distinct concat('{๐dname๐:๐', drugitems.name, '๐, ๐dqty๐:๐',opitemrece.qty, '๐, ๐did๐:๐',drugitems.did,'๐}') ),']')) 
--- ,'๐',char(34))
--- as list_drug_name,
-
-cast(group_concat(distinct case when drugitems.name is not null then ifnull(opitemrece.doctor,opduser.doctorcode) end ) as char)   as list_drug_provider,
-cast(lpad(person.nationality,3,0)  as char)  as nation,
-cast(lpad(person.citizenship,3,0)  as char)  as race,
-cast(person.pname  as char)   as patient_pname,
-cast('xxx'  as char)   as patient_fname,
-cast('xxx' as char)   as patient_lname,
-cast(person.sex    as char)   as sex,
-cast(group_concat(distinct ovstdiag.doctor order by ovstdiag.diagtype,ovstdiag.icd10)   as char)    as provider_id,
-cast(group_concat(distinct concat('(',doctor.provider_type_code,')',provider_type.provider_type_name) order by ovstdiag.diagtype,ovstdiag.icd10)   as char)    as providertype,
-cast(group_concat(distinct doctor.fname order by ovstdiag.diagtype,ovstdiag.icd10)   as char)    as provider_fname,
-cast(group_concat(distinct 'xxx')   as char)    as provider_lname,
-cast('0' as char)  as has_dent,
-cast('0' as char)  as list_dent_code,
-cast('0' as char)  as list_dent_name,
-cast(null as char)  as doctor_dm,
-cast(now() as char)  as import_datetimestamp
+-- service data
+	cast(ovst.vn as char) as hdc_date,
+	cast(now() as char)  as export_stamp ,
+	cast(@s_date as char) as start_date ,
+	cast(@e_date as char) as stop_date ,
+	cast(@hospital_code as char) as hospcode,
+	cast(ovst_seq.seq_id as char) as seq,
+	cast(ovst.vstdate as char) as date_serv,
+-- patient data
+	cast(lpad(person.person_id,9,0) as char) as pid,
+	cast(if(trim(ovst.hn) = trim(person.cid),'xxx',trim(ovst.hn)) as char) as hn,
+  cast('xxx' as char) as cid,
+	cast(person.pname as char)  as patient_pname,
+	cast('xxx' as char) as patient_fname,
+	cast('xxx' as char) as patient_lname,
+	cast(person.sex as char) as sex,
+	cast(lpad(person.nationality,3,0) as char) as nation,
+	cast(lpad(person.citizenship,3,0) as char) as race,
+-- right of treatment
+ cast(provis_instype.pttype_std_code as char) as instype,
+	concat_ws('|',pttype.`name`,
+	if(trim(replace(replace(ovst.pttypeno,'-', ''),' ','')) = trim(person.cid)
+	,'xxx',
+	trim(replace(replace(ovst.pttypeno,'-', ''),' ',''))
+	)) as insid,
+	cast(ovst.hospmain as char) as main,
+	cast(ovst.hospsub as char) as hsub,
+-- screen and money
+  cast(left(trim(replace(replace(replace(opdscreen.cc,'\r\n',' '),char(10),' '),char(13),' ')),255) as char) as chiefcomp,
+	cast(vt_od.cost as char) as cost,
+	cast(vt_od.price as char) as price,
+	cast(vt_od.sum_drug_unitprice as char) as pay_price,
+	cast(vt_od.sum_drug_unitcost as char) as actualpay ,
+-- group diag
+	cast(vt_d.count_diag as char) as count_diag_use,
+  cast(vt_d.list_diag_code as char) as list_diag_code,
+	cast(vt_d.pdx_list_code as char) as pdx,
+	cast(concat(vt_d.pdx_list_provider_code,'-',vt_d.pdx_list_doctor_code) as char) as list_diagnosis_provider ,
+	cast(vt_d.list_diag_doctor_code as char) as provider_id,
+	cast(vt_d.list_diag_doctor_provider_code_name as char) as providertype,
+	cast(vt_d.list_diag_doctor_code_name as char) as provider_fname,
+	cast(group_concat(distinct 'xxx') as char) as provider_lname,
+-- group procedure
+  cast(vt_p.count_procedure as char) as count_procedure_use,
+	cast(vt_p.list_procedure as char) as list_procedure_code,
+	cast(vt_p.list_procedure_doctor_name as char) as list_procedure_provider,
+-- group drug
+  cast(vt_od.count_drug as char) as count_drug_use,
+	cast(vt_od.list_drug as char) as list_drug_name,
+  cast(vt_od.list_drug_doctor_name as char) as list_drug_provider,
+-- special check
+	cast('0' as char) as has_dent,
+	cast('0' as char) as list_dent_code,
+	cast('0' as char) as list_dent_name,
+	cast(vt_d.check_has_doctor_dm as char) as doctor_dm,
+	cast(now() as char) as import_datetimestamp	
 from
 	ovst
-inner join ovst_seq on ovst.vn = ovst_seq.vn
-inner join patient on ovst.hn = patient.hn
-inner join person on patient.hn = person.patient_hn
-left outer join pttype on ovst.pttype = pttype.pttype
-left outer join provis_instype on pttype.nhso_code = provis_instype.code
-inner join opdscreen on ovst.vn = opdscreen.vn
-left outer join ovstdiag on ovst.vn = ovstdiag.vn
-left outer join doctor on ovstdiag.doctor = doctor.code
+	inner join ovst_seq on ovst.vn = ovst_seq.vn
+	inner join patient on ovst.hn = patient.hn
+	inner join person on patient.hn = person.patient_hn
+	left outer join pttype on ovst.pttype = pttype.pttype
+	left outer join provis_instype on pttype.nhso_code = provis_instype.code
+	inner join opdscreen on ovst.vn = opdscreen.vn
+-- vt_d : diagnosis
+left outer join
+(
+select
+	ovstdiag.vn,
+	ovstdiag.hn,
+	ovstdiag.vstdate,
+	group_concat(distinct case when ovstdiag.diagtype = 1 then ovstdiag.icd10 else null end order by ovstdiag.icd10 asc) as pdx_list_code,
+  group_concat(distinct case when ovstdiag.diagtype = 1 then concat('[',provider_type.provider_type_code,']',provider_type.provider_type_name) else null end order by ovstdiag.icd10 asc) as pdx_list_provider_code,		
+  group_concat(distinct case when ovstdiag.diagtype = 1 then concat('[',doctor.`code`,']',doctor.fname) else null end order by ovstdiag.icd10 asc) as pdx_list_doctor_code,
+	group_concat(distinct ovstdiag.icd10 order by ovstdiag.diagtype asc) as list_diag_code,
+	group_concat(distinct ovstdiag.doctor order by ovstdiag.diagtype asc) as list_diag_doctor_code,
+	group_concat(distinct concat('[',provider_type.provider_type_code,']',provider_type.provider_type_name) order by ovstdiag.diagtype asc) as list_diag_doctor_provider_code_name,
+	group_concat(distinct concat('[',doctor.`code`,']',doctor.fname) order by ovstdiag.diagtype asc) as list_diag_doctor_code_name,
+	count(distinct ovstdiag.icd10) as count_diag,
+	max(case when ovstdiag.diagtype = 1 then 1 else 0 end) as check_has_pdx,
+  max(case when (left(ovstdiag.icd10,3) between 'e10' and 'e14') and left(provider_type.provider_type_code,2) ='01' then 1 else 0 end) as check_has_doctor_dm
+from
+	ovstdiag
+left outer join doctor on ovstdiag.doctor = doctor.`code`
 left outer join provider_type on doctor.provider_type_code = provider_type.provider_type_code
-left outer join doctor_operation on ovst.vn = doctor_operation.vn
-
-LEFT OUTER JOIN dtmain on ovst.vn = dtmain.vn
-
-left outer join er_oper_code on doctor_operation.er_oper_code = er_oper_code.er_oper_code
-left outer join doctor as dc_pr on doctor_operation.doctor = dc_pr.code
-left outer join opitemrece on ovst.vn = opitemrece.vn
-left outer join drugitems on opitemrece.icode = drugitems.icode 
+where
+	ovstdiag.vstdate between @s_date and @e_date
+group by
+	ovstdiag.vn
+order by
+	ovstdiag.vn
+) as vt_d on ovst.vn = vt_d.vn
+-- vt_od : opitemrece,drug
+left outer join
+(
+select
+	opitemrece.vn,
+	opitemrece.hn,
+	opitemrece.vstdate,
+	truncate(sum(opitemrece.qty * opitemrece.cost),2) as cost,
+	truncate(sum(opitemrece.sum_price),2) as price,
+	count(distinct opitemrece.icode) as count_all,
+	count(distinct drugitems.icode) as count_drug,
+	truncate(sum(case when drugitems.icode is not null then opitemrece.qty*drugitems.unitcost else 0 end),2) sum_drug_unitcost,
+	truncate(sum(case when drugitems.icode is not null then opitemrece.qty*drugitems.unitprice else 0 end),2) sum_drug_unitprice,
+	group_concat(distinct lower(concat(drugitems.name,'|qty=',opitemrece.qty,'|sum_price=',opitemrece.sum_price)) ) as list_drug,
+	group_concat(distinct case when drugitems.name is not null then ifnull(opitemrece.doctor,opduser.doctorcode) end ) list_drug_doctor_code,
+	group_concat(distinct case when drugitems.name is not null then concat('[',doctor.`code`,']',doctor.fname) else null end ) as list_drug_doctor_name,
+	group_concat(distinct case when drugitems.name is not null then concat('[',provider_type.provider_type_code,']',provider_type.provider_type_name) else null end) as list_drug_provider_code_name
+from
+	opitemrece
+left outer join drugitems on opitemrece.icode = drugitems.icode
 left outer join opduser on opitemrece.staff = opduser.loginname
-
-LEFT OUTER JOIN
--- subquery call procedure list
+left outer join doctor on opduser.doctorcode = doctor.`code`
+left outer join provider_type on doctor.provider_type_code = provider_type.provider_type_code
+where
+	opitemrece.vstdate between @s_date and @e_date
+group by
+	opitemrece.vn
+) as vt_od on ovst.vn = vt_od.vn
+-- vt_p : dtmain,dttm,doctor_operation,er_oper_code,er_oper_code_area
+left outer join
 (
-SELECT 
-vt.vn, 
-count(DISTINCT vt.icd9) as count_procedure,
-GROUP_CONCAT(distinct vt.icd9) as list_procedure_code ,
-GROUP_CONCAT(distinct vt.doctor) as list_procedure_doctor
-FROM
+select 
+	vtp.vn,
+	vtp.vstdate,
+	group_concat(distinct concat('[',doctor.`code`,']',doctor.fname) ) as list_procedure_doctor_name,
+	group_concat(distinct concat('[',provider_type.provider_type_code,']',provider_type.provider_type_name)) as list_procedure_provider_code_name,
+	count(distinct vtp.procedure_code) as count_procedure,
+	group_concat(distinct vtp.procedure_code) as list_procedure,
+	max(case when vtp.source = 'dental' then 1 else 0 end) as check_procedure_dental,
+	max(vtp.check_dent_treatment) as check_dent_treatment
+from
 (
-SELECT
-dtmain.vn,
-IFNULL(dttm.icd10tm_operation_code,dttm.icd9cm) AS icd9,
-dtmain.doctor
-FROM dtmain
-LEFT OUTER JOIN dttm ON dtmain.tmcode = dttm.`code`
-WHERE
-date(
-concat(
-concat('25',LEFT(dtmain.vn,2))-543,'-',mid(dtmain.vn,3,2),'-',mid(dtmain.vn,5,2)
-))  BETWEEN @s_date AND @e_date
-UNION
-SELECT
-doctor_operation.vn,
-IFNULL(
-IFNULl(
-IF(er_oper_code.icd9cm ='',NULL,er_oper_code.icd9cm),
-IF(doctor_operation.icd9 ='',NULL,doctor_operation.icd9)
-)
-,
-IFNULL(
-IF(er_oper_code.icd10tm ='',NULL,er_oper_code.icd10tm),
-IF(er_oper_code_area.icd10tm_operation_code ='',NULL,er_oper_code_area.icd10tm_operation_code)
-)
-) AS icd9,
-doctor_operation.doctor
-FROM
-doctor_operation
-LEFT OUTER JOIN er_oper_code ON doctor_operation.er_oper_code = er_oper_code.er_oper_code
-LEFT OUTER JOIN er_oper_code_area ON doctor_operation.er_oper_code_area_id = er_oper_code_area.er_oper_code_area_id
-WHERE
-date(
-concat(
-concat('25',LEFT(doctor_operation.vn,2))-543,'-',mid(doctor_operation.vn,3,2),'-',mid(doctor_operation.vn,5,2)
-))  BETWEEN @s_date AND @e_date
-) vt 
-GROUP BY vt.vn
-HAVING GROUP_CONCAT(distinct vt.icd9) IS NOT NULL
-) cvt ON ovst.vn = cvt.vn
+-- dtmain,dttm [group dental]
+select
+	dtmain.vn,
+	dtmain.vstdate,
+	dtmain.doctor as doctor,
+	ifnull(dttm.icd10tm_operation_code,dttm.icd9cm) as procedure_code,
+	case when dttm.treatment = 'y' then 1 else 0 end as check_dent_treatment,
+	'dental' as source
+from 
+	dtmain
+inner join dttm on dtmain.tmcode = dttm.`code` 
+where
+	date(dtmain.vstdate) between @s_date and @e_date
+union all
+-- doctor_operation,er_oper_code,er_oper_code_area [group doctor_operation]
+select
+	doctor_operation.vn as vn,
+	date(doctor_operation.begin_date_time) as vstdate,
+	doctor_operation.doctor,
+	ifnull(
+	ifnull(
+	er_oper_code.icd9cm,
+	doctor_operation.icd9)
+	,
+	ifnull(
+	er_oper_code.icd10tm,
+	er_oper_code_area.icd10tm_operation_code
+	)
+	) as procedure_code,
+	'0' as check_dent_treatment,
+	'eroper' as source
+from
+	doctor_operation
+left outer join er_oper_code on doctor_operation.er_oper_code = er_oper_code.er_oper_code
+left outer join er_oper_code_area on doctor_operation.er_oper_code_area_id = er_oper_code_area.er_oper_code_area_id
+where
+	date(doctor_operation.begin_date_time) between @s_date and @e_date
+) as vtp
+left outer join doctor on vtp.doctor = doctor.`code`
+left outer join provider_type on doctor.provider_type_code = provider_type.provider_type_code
+where 
+	vtp.procedure_code is not null
+group by
+	vtp.vn
+order by vtp.vn
+) as vt_p on ovst.vn = vt_p.vn
 
 where
-	ovst.vstdate between @s_date
-and @e_date
--- and
--- (
--- (left(provis_instype.pttype_std_code,2) = '01' and ovst.hospmain = '10679')
--- or
--- (person.nationality <> '99')
--- )
+	ovst.vstdate between @s_date and @e_date
 group by
-ovst.vn
+	ovst.vn
 
--- Update [2024-08-07 09:06:07]
+-- Update Log
+
+-- update 2024-08-13 [2024-08-13 08:44:30]
+-- * ปรับ จัดลำดับ column ตามเนื้อหา
+-- * สร้าง Sub Query ตามกลุ่มเนื้อหา เพื่อลดปัญหาใช้ Memory และ Bug เวลา Join ข้อมูล Multiple Record
+-- * ปรับ vt_od : opitemrece,drug กลุ่ม ยา และ ค่าใช้จ่าย 
+-- * ปรับ vt_d : diagnosis วินิจฉัย
+-- * ปรับ vt_p : dtmain,dttm,doctor_operation,er_oper_code,er_oper_code_area หัตถการทันตกรรม และ หัตถการ
+
+-- Update 2024-08-07 [2024-08-07 09:06:07]
 -- * ปรับ จัดลำดับตาม IFNULL ดังนี้ ICD-9-CM รองลงมาเป็น ICD-10-TM
 -- * มาตรฐาน 43 แฟ้ม เวอร์ชั่น 2.4 รหัสหัตถการ ตารางราง PROCEDURE_OPD : Description : รหัสมาตรฐาน ICD-9-CM หรือ ICD-10-TM (รหัสหัตถการ) 
 
--- Update [2024-08-06 xx:xx:xx]
+-- Update 2024-08-06
 -- * subquery ตารางหัตถการ เพื่อให้ รหัสหัตถการออกมากทั้งหมด ทั้งหัตถการทั่วไป และ ทันตกรรม (subquery call procedure list)
 -- * ปรับ icd9 หัตถการทั่วไป : ดึงมาจากหลาย Column ตามลำดับหากไม่เจอให้ดูที่ Column ถัดไปจนกว่าจะไม่มี เน้น ICD10TM
 -- * ปรับ ลำดับ er_oper_code_area.icd10tm_operation_code, doctor_operation.icd9,er_oper_code.icd10tm,er_oper_code.icd9cm
 -- * ปรับ icd9 ทันตกรรม : เรียงลำดับ dttm.icd10tm_operation_code,dttm.icd9cm เน้น ICD10TM
 
--- Update [2024-08-05 xx:xx:xx]
+-- Update 2024-08-05
 -- * subquery ตารางหัตถการ เพื่อให้ รหัสหัตถการออกมากทั้งหมด ทั้งหัตถการทั่วไป และ ทันตกรรม (subquery call procedure list)
 -- * ปรับ count_procedure_use : ตาราง subquery cvt.count_procedure
 -- * ปรับ list_procedure_code : ตาราง subquery cvt.list_procedure_code
 -- * ปรับ list_procedure_provider : ตาราง subquery cvt.list_procedure_doctor
 
--- Update [2024-07-31 xx:xx:xx]
+-- Update 2024-07-31
 -- * ปรับ hdc_date : ใช้ VN แทน เพราะไม่สามาถนำข้อมูลจาก HDC มาใช้ได้
 -- * ปรับ chiefcomp : Line Break,New line ในข้อความโดยใช้ '\r\n',char(10),char(13)
 -- * ปรับ count_drug_use : เพิ่ม ราคาขาย '|sum_price='
