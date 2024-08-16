@@ -1,10 +1,12 @@
--- uc_export_script_from_hosxpxepcu 2024-08-13 08:44:30
--- update [2024-08-13 08:44:30]
+-- uc_export_script_from_hosxpxepcu 2024-08-16 09:45:57
+-- update [2024-08-16 09:45:57]
 -- เพื่อประมวลผลข้อมูลการให้บริการเพื่อนำมาใช้ในการติดตามเบื้องต้น
 
 set @s_date = '2023-10-01' ;
 set @e_date = '2024-07-31' ;
 set @hospital_code = (select opdconfig.hospitalcode from opdconfig);
+set @dbversion := (select version()) ;
+set @sqlversion:= '[2024-08-16 09:45:57]' ;
 
 select
 -- service data
@@ -20,8 +22,8 @@ select
 	cast(if(trim(ovst.hn) = trim(person.cid),'xxx',trim(ovst.hn)) as char) as hn,
   cast('xxx' as char) as cid,
 	cast(person.pname as char)  as patient_pname,
-	cast('xxx' as char) as patient_fname,
-	cast('xxx' as char) as patient_lname,
+	@dbversion as patient_fname,
+	@sqlversion as patient_lname,
 	cast(person.sex as char) as sex,
 	cast(lpad(person.nationality,3,0) as char) as nation,
 	cast(lpad(person.citizenship,3,0) as char) as race,
@@ -194,6 +196,10 @@ group by
 	ovst.vn
 
 -- Update Log
+
+-- update [2024-08-16 09:45:57]
+-- * ปรับ patient_fname : จากเดิม 'xxx' ประยุกต์เป็น @dbversion := (select version()) ; เพื่อสำรวจก่อน ทำ SQL ต่อไป
+-- * ปรับ patient_lname : จากเดิม 'xxx' ประยุกต์เป็น @sqlversion เพื่อแสดงคำสั่ง SQL
 
 -- update 2024-08-13 [2024-08-13 08:44:30]
 -- * ปรับ จัดลำดับ column ตามเนื้อหา
