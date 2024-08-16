@@ -2,9 +2,9 @@
 -- update [2024-08-16 09:45:57]
 -- เพื่อประมวลผลข้อมูลการให้บริการเพื่อนำมาใช้ในการติดตามเบื้องต้น
 
-set @s_date = '2023-10-01' ;
-set @e_date = '2024-07-31' ;
-set @hospital_code = (select opdconfig.hospitalcode from opdconfig);
+set @s_date := '2023-10-01' ;
+set @e_date := '2024-07-31' ;
+set @hospital_code := (select opdconfig.hospitalcode from opdconfig);
 set @dbversion := (select version()) ;
 set @sqlversion:= '[2024-08-16 09:45:57]' ;
 
