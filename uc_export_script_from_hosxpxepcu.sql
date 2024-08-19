@@ -2,7 +2,7 @@
 -- update [2024-08-19 13:34:22]
 -- เพื่อประมวลผลข้อมูลการให้บริการเพื่อนำมาใช้ในการติดตามเบื้องต้น
 
-set @s_date := '2022-10-01' ;
+set @s_date := '2023-10-01' ;
 set @e_date := '2024-07-31' ;
 set @hospital_code := (select opdconfig.hospitalcode from opdconfig);
 set @dbversion := (select version()) ;
