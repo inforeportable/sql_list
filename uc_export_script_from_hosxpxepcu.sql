@@ -1,12 +1,12 @@
--- uc_export_script_from_hosxpxepcu 2024-08-16 09:45:57
--- update [2024-08-16 09:45:57]
+-- uc_export_script_from_hosxpxepcu 2024-08-19 13:34:22
+-- update [2024-08-19 13:34:22]
 -- เพื่อประมวลผลข้อมูลการให้บริการเพื่อนำมาใช้ในการติดตามเบื้องต้น
 
-set @s_date := '2023-10-01' ;
+set @s_date := '2022-10-01' ;
 set @e_date := '2024-07-31' ;
 set @hospital_code := (select opdconfig.hospitalcode from opdconfig);
 set @dbversion := (select version()) ;
-set @sqlversion:= '[2024-08-16 09:45:57]' ;
+set @sqlversion:= '[2024-08-19 13:34:2]' ;
 
 select
 -- service data
@@ -164,12 +164,13 @@ select
 	doctor_operation.doctor,
 	ifnull(
 	ifnull(
-	er_oper_code.icd9cm,
-	doctor_operation.icd9)
+	CASE WHEN BIN(er_oper_code.icd9cm) IS NULL THEN NULL ELSE er_oper_code.icd9cm END,
+	CASE WHEN BIN(doctor_operation.icd9) IS NULL THEN NULL ELSE doctor_operation.icd9 END
+)
 	,
 	ifnull(
-	er_oper_code.icd10tm,
-	er_oper_code_area.icd10tm_operation_code
+	CASE WHEN BIN(er_oper_code.icd10tm) IS NULL THEN NULL ELSE er_oper_code.icd10tm END,
+	CASE WHEN BIN(er_oper_code_area.icd10tm_operation_code) IS NULL THEN NULL ELSE er_oper_code_area.icd10tm_operation_code END
 	)
 	) as procedure_code,
 	'0' as check_dent_treatment,
@@ -196,6 +197,9 @@ group by
 	ovst.vn
 
 -- Update Log
+
+-- update [2024-08-19 13:34:22]
+-- * ปรับ list_procedure_code : แก้อาการรหัสไม่ออก เพราะเจอข้อความ '' แก้ปัญหาด้วย case when bin(column) IS NULL THEN NULL ELSE column END
 
 -- update [2024-08-16 09:45:57]
 -- * ปรับ patient_fname : จากเดิม 'xxx' ประยุกต์เป็น @dbversion := (select version()) ; เพื่อสำรวจก่อน ทำ SQL ต่อไป
