@@ -1,12 +1,12 @@
--- uc_export_script_from_hosxpxepcu 2024-08-19 13:34:22
--- update [2024-08-19 13:34:22]
+-- uc_export_script_from_hosxpxepcu 2024-11-04 13:16:26
+-- update [2024-11-04 13:16:26]
 -- เพื่อประมวลผลข้อมูลการให้บริการเพื่อนำมาใช้ในการติดตามเบื้องต้น
 
-set @s_date := '2024-09-01' ;
-set @e_date := '2024-09-30' ;
+set @s_date := '2024-10-01' ;
+set @e_date := '2024-10-31' ;
 set @hospital_code := (select opdconfig.hospitalcode from opdconfig);
 set @dbversion := (select version()) ;
-set @sqlversion:= '[2024-08-19 13:34:2]' ;
+set @sqlversion:= '[2024-11-04 13:16:26]' ;
 
 select
 -- service data
