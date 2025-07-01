@@ -2,11 +2,11 @@
 -- update [2025-06-09 07:47:37]
 -- เพื่อประมวลผลข้อมูลการให้บริการเพื่อนำมาใช้ในการติดตามเบื้องต้น
 
-set @s_date := '2025-05-01' ;
-set @e_date := '2025-05-31' ;
+set @s_date := '2025-06-01' ;
+set @e_date := '2025-06-30' ;
 set @hospital_code := (select opdconfig.hospitalcode from opdconfig);
 set @dbversion := (select version()) ;
-set @sqlversion:= '[2025-06-09 07:47:37]' ;
+set @sqlversion:= '[2025-07-01 11:02:19]' ;
 
 select
 -- service data
