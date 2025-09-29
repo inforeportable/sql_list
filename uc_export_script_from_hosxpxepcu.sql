@@ -1,12 +1,12 @@
--- uc_export_script_from_hosxpxepcu [2025-09-05 14:40:53]
--- update [2025-09-05 14:40:53]
+-- uc_export_script_from_hosxpxepcu [2025-09-29 09:48:50]
+-- update [2025-09-29 09:48:50]
 -- เพื่อประมวลผลข้อมูลการให้บริการเพื่อนำมาใช้ในการติดตามเบื้องต้น
 
-set @s_date := '2025-08-01' ;
-set @e_date := '2025-08-31' ;
+set @s_date := '2025-09-01' ;
+set @e_date := '2025-09-30' ;
 set @hospital_code := (select opdconfig.hospitalcode from opdconfig);
 set @dbversion := (select version()) ;
-set @sqlversion:= '[2025-09-05 14:40:53]' ;
+set @sqlversion:= '[2025-09-29 09:48:50]' ;
 
 select
 -- service data
